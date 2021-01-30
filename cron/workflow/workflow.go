@@ -1,11 +1,12 @@
 package workflow
 
 import (
-	//"github.com/venkat1109/cadence-codelab/cron/activity"
-	"errors"
+	"time"
+
 	"go.uber.org/cadence"
 	"go.uber.org/zap"
-	"time"
+
+	"github.com/venkat1109/cadence-codelab/cron/activity"
 )
 
 type (
@@ -39,5 +40,41 @@ func Cron(ctx cadence.Context, schedule *CronSchedule) error {
 
 // runScheduler runs the cron scheduler
 func runScheduler(ctx cadence.Context, activityCtx cadence.Context, schedule *CronSchedule) error {
-	return errors.New("not implemented")
+
+	var loopCount int
+
+	for schedule.Count > 0 && loopCount < maxJobsPerLoop {
+
+		futures := make([]cadence.Future, len(schedule.Hostgroups))
+
+		for i, hg := range schedule.Hostgroups {
+			// create a child context to route this activity
+			// task to a specific task list
+			childCtx := cadence.WithTaskList(activityCtx, hg)
+			futures[i] = cadence.ExecuteActivity(childCtx, activity.Cron)
+		}
+
+		cadence.GetLogger(ctx).Info("Waiting for activities to complete")
+
+		for _, future := range futures {
+			err := future.Get(ctx, nil)
+			if err != nil {
+				cadence.GetLogger(ctx).Error("cron job failed", zap.Error(err))
+			}
+		}
+
+		loopCount++
+		schedule.Count--
+		time.Sleep(schedule.Frequency)
+	}
+
+	if schedule.Count == 0 {
+		cadence.GetLogger(ctx).Info("Cron workflow completed")
+		return nil
+	}
+
+	// ContinueAsNew workflow to limit the history size
+	ctx = cadence.WithExecutionStartToCloseTimeout(ctx, 24*time.Hour)
+	ctx = cadence.WithWorkflowTaskStartToCloseTimeout(ctx, 20*time.Minute)
+	return cadence.NewContinueAsNewError(ctx, Cron, schedule)
 }

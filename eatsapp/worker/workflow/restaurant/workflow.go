@@ -10,11 +10,11 @@ import (
 )
 
 func init() {
-	cadence.RegisterWorkflow(OrderWorkflow)
+	cadence.RegisterWorkflow(PlaceOrderWorkflow)
 }
 
-// OrderWorkflow implements the restaurant order workflow.
-func OrderWorkflow(ctx cadence.Context, wfRunID string, orderID string, items []string) (time.Duration, error) {
+// PlaceOrderWorkflow implements the restaurant order workflow.
+func PlaceOrderWorkflow(ctx cadence.Context, wfRunID string, orderID string, items []string) (time.Duration, error) {
 
 	ao := cadence.ActivityOptions{
 		ScheduleToStartTimeout: time.Minute * 5,

@@ -1,10 +1,12 @@
 package eats
 
 import (
-	common "github.com/venkat1109/cadence-codelab/eatsapp/webserver/service"
+	"net/http"
+
 	"go.uber.org/cadence"
 	s "go.uber.org/cadence/.gen/go/shared"
-	"net/http"
+
+	common "github.com/venkat1109/cadence-codelab/eatsapp/webserver/service"
 )
 
 type (
@@ -38,11 +40,9 @@ func NewService(c cadence.Client, menu *common.Menu) *EatsService {
 func (h *EatsService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		// PLACEHOLDER IMPL
-		http.Error(w, "Not Implemented", http.StatusInternalServerError)
+		h.show(w, r)
 	case "POST":
-		// PLACEHOLDER IMPL
-		http.Error(w, "Not Implemented", http.StatusInternalServerError)
+		h.create(w, r)
 	default:
 		http.Error(w, "", http.StatusInternalServerError)
 		return

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go.uber.org/cadence"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -13,5 +14,8 @@ func init() {
 
 // EstimateETAActivity implements the estimate eta activity.
 func EstimateETAActivity(ctx context.Context, orderID string) (time.Duration, error) {
-	return time.Minute, nil
+	time.Sleep(time.Second * 5)
+	eta := time.Minute * 1
+	cadence.GetActivityLogger(ctx).Info("Computed restaurant ready ETA", zap.Duration("ETA", eta))
+	return eta, nil
 }

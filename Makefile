@@ -5,12 +5,12 @@ export PATH := $(GOPATH)/bin:$(PATH)
 
 COMMON_SRC := $(shell find ./common -name "*.go")
 
-mkbins: 
+mkbins:
 	mkdir -p bins
 
 vendor/glide.updated: glide.yaml
-	glide install
-	touch vendor/glide.updated
+	#glide install
+	#touch vendor/glide.updated
 
 helloworld: vendor/glide.updated mkbins $(COMMON_SRC)
 	go build -i -o bins/helloworld_starter helloworld/starter.go

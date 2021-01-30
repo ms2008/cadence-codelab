@@ -1,12 +1,14 @@
 package eats
 
 import (
-	// "github.com/venkat1109/cadence-codelab/eatsapp/worker/workflow/eats"
 	"fmt"
-	"go.uber.org/cadence"
 	"net/http"
 	"strings"
-	// "time"
+	"time"
+
+	"go.uber.org/cadence"
+
+	"github.com/venkat1109/cadence-codelab/eatsapp/worker/workflow/eats"
 )
 
 // create creates a new eats order
@@ -41,6 +43,15 @@ func (h *EatsService) create(w http.ResponseWriter, r *http.Request) {
 
 // startOrderWorkflow starts the eats order workflow
 func (h *EatsService) startOrderWorkflow(items []string) (*cadence.WorkflowExecution, error) {
-	// THIS IS A PLACEHOLDER IMPLEMENTATION
-	return nil, fmt.Errorf("not implemented")
+
+	orderID := fmt.Sprintf("EO-USR-JOE-%v", time.Now().Unix())
+
+	workflowOptions := cadence.StartWorkflowOptions{
+		ID:                              orderID,
+		TaskList:                        cadenceTaskList,
+		ExecutionStartToCloseTimeout:    10 * time.Minute,
+		DecisionTaskStartToCloseTimeout: 10 * time.Minute,
+	}
+
+	return h.client.StartWorkflow(workflowOptions, eats.OrderWorkflow, orderID, items)
 }

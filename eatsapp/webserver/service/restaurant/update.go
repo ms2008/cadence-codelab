@@ -1,7 +1,7 @@
 package restaurant
 
 import (
-	//"errors"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -26,7 +26,43 @@ func (h *RestaurantService) updateOrder(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *RestaurantService) handleAction(r *http.Request, order *Order, action string) {
-	return
+	switch action {
+	case "accept":
+		// waiter accepted, complete PlaceOrderActivity
+		err := h.client.CompleteActivity(order.TaskToken, "ACCEPTED", nil)
+		if err != nil {
+			order.Status = OSRejected
+		} else {
+			order.Status = OSPreparing
+		}
+
+	case "decline":
+		// waiter declined, fail PlaceOrderActivity
+		h.client.CompleteActivity(order.TaskToken, "REJECTED", errors.New("Order rejected"))
+		order.Status = OSRejected
+
+	case "ready":
+		// food is ready, send a signal to the eats.OrderWorkflow
+		err := h.client.SignalWorkflow(order.ReadySignal.WorkflowID, order.ReadySignal.RunID, order.ID, "ORDER_READY")
+		if err != nil {
+			fmt.Printf("%s", err)
+		}
+		order.Status = OSReady
+
+	case "sent":
+		// Courier picked up the food, send a signal to
+		// to the courier workflow
+		err := h.client.SignalWorkflow(order.PickUpSignal.WorkflowID, order.PickUpSignal.RunID, order.ID, "ORDER_PICKED_UP")
+		if err != nil {
+			fmt.Printf("%s", err)
+		}
+		order.Status = OSSent
+
+	case "p_sig":
+		// Courier out for pick up, record context
+		// for sending signal later
+		order.PickUpSignal = getSignalParams(r)
+	}
 }
 
 func getSignalParams(r *http.Request) *SignalParam {

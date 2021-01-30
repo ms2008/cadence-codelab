@@ -2,9 +2,9 @@ package activity
 
 import (
 	"context"
-	"errors"
-	"go.uber.org/cadence"
 	"time"
+
+	"go.uber.org/cadence"
 )
 
 const (
@@ -17,7 +17,30 @@ func init() {
 
 // Cron implements the cron activity
 func Cron(ctx context.Context) error {
-	return errors.New("not implemented")
+
+	stopC := make(chan struct{})
+	doneC := make(chan struct{})
+
+	go doWork(stopC, doneC) // run cron task in background
+
+	for {
+
+		time.Sleep(heartbeatInterval)
+
+		// Heartbeat to cadence with an optional
+		// status message piggy backed with it
+		// if the workflow is cancelled or terminated
+		// cadence will set the context to Done
+		cadence.RecordActivityHeartbeat(ctx, "status-report-to-workflow")
+
+		if isDone(ctx, doneC) {
+			// activity / workflow is cancelled, return now
+			close(stopC)
+			return ctx.Err()
+		}
+	}
+
+	return nil
 }
 
 // isDone returns true if the activity is done or cancelled

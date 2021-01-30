@@ -1,14 +1,15 @@
 package eats
 
 import (
-	"github.com/venkat1109/cadence-codelab/eatsapp/webserver/service"
-	//"github.com/venkat1109/cadence-codelab/eatsapp/worker/workflow/eats"
-	s "go.uber.org/cadence/.gen/go/shared"
 	"net/http"
 	"reflect"
 	"runtime"
-	//"time"
-	"errors"
+	"time"
+
+	s "go.uber.org/cadence/.gen/go/shared"
+
+	"github.com/venkat1109/cadence-codelab/eatsapp/webserver/service"
+	"github.com/venkat1109/cadence-codelab/eatsapp/worker/workflow/eats"
 )
 
 func (h *EatsService) show(w http.ResponseWriter, r *http.Request) {
@@ -66,5 +67,23 @@ func getWorkflowName(workflowFunc interface{}) string {
 // listOpenWorkflows returns all the open eats order workflows
 // created over the past ten hours
 func (h *EatsService) listOpenWorkflows() (*s.ListOpenWorkflowExecutionsResponse, error) {
-	return nil, errors.New("not implemented")
+
+	// list all the open workflows in the past 10 hours
+	startTime := time.Now().Add(-10 * time.Hour).UnixNano()
+	latestTime := time.Now().Add(time.Minute).UnixNano()
+
+	// convert the workflow function into a fully qualified name
+	workflowName := getWorkflowName(eats.OrderWorkflow)
+
+	// list all the eats order workflows during the past 10 hours
+	req := s.ListOpenWorkflowExecutionsRequest{
+		StartTimeFilter: &s.StartTimeFilter{
+			EarliestTime: &startTime,
+			LatestTime:   &latestTime,
+		},
+		TypeFilter: &s.WorkflowTypeFilter{
+			Name: &workflowName,
+		},
+	}
+	return h.client.ListOpenWorkflow(&req)
 }

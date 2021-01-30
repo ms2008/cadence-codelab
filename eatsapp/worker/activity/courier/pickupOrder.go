@@ -2,9 +2,9 @@ package courier
 
 import (
 	"context"
-	"errors"
 
 	"go.uber.org/cadence"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -13,7 +13,24 @@ func init() {
 
 // PickUpOrderActivity implements the pick-up order activity.
 func PickUpOrderActivity(ctx context.Context, execution cadence.WorkflowExecution, orderID string) (string, error) {
-	return "", errors.New("not implemented")
+	logger := cadence.GetActivityLogger(ctx)
+
+	err := notifyRestaurant(execution, orderID)
+	if err != nil {
+		logger.Info("Failed to notify restaurant.", zap.Error(err))
+		return "", err
+	}
+
+	activityInfo := cadence.GetActivityInfo(ctx)
+
+	// register token with courier service
+	err = pickup(orderID, string(activityInfo.TaskToken))
+	if err != nil {
+		logger.Info("Failed to dispatch courier order.", zap.Error(err))
+		return "", err
+	}
+
+	return "", cadence.ErrActivityResultPending
 }
 
 func notifyRestaurant(execution cadence.WorkflowExecution, orderID string) error {
